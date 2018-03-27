@@ -21,6 +21,8 @@ fun Long.zeroBits(bits: Collection<Int>) {
 
 infix fun Long.swapBit(to: Int) = this xor (1L shl to)
 
+fun Long.bitCount() = java.lang.Long.bitCount(this)
+
 val bitPosition = arrayOf(
         0,  1, 48,  2, 57, 49, 28,  3,
         61, 58, 50, 42, 38, 29, 17,  4,
@@ -35,6 +37,8 @@ val bitPosition = arrayOf(
 fun Long.getLowestBit(): Int {
     return bitPosition[(((this and -this) * 0x03F79D71B4CB0A89L) ushr 58).toInt()]
 }
+
+fun Long.getPowerOfLowestBit() = this and -this
 
 fun Long.zeroLowestBit() = this and (this - 1)
 

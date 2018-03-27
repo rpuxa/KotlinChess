@@ -12,7 +12,7 @@ const val ROTATED_MINUS45 = 3
 const val ALL_WHITES = 4
 const val ALL_BLACKS = 5
 
-
+const val NONE = -1
 const val KING = 0
 const val ROOK = 1
 const val KNIGHT = 2
@@ -24,7 +24,10 @@ const val PAWN = 5
 const val COUNT = 12
 const val BOARD_SIZE = 8
 
-const val VERTICAL_1 = 0
+const val CONTINUE = 0
+const val BLACK_WINS = 1
+const val WHITE_WINS = 2
+const val DRAW = 3
 
 
 val HORIZONTAL_2 = 8..15

@@ -1,4 +1,4 @@
-package chess.abstractclasses
+package chess.abstracts
 
 import chess.Move
 

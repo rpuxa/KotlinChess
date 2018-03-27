@@ -211,7 +211,7 @@ fun moveGenPawns() {
                             cordToBit(x - 1, y - 1),
                             cordToBit(x + 1, y - 1)
                     )
-                    WHITE_PAWNS_ATTACK[cell] = BLACK_PAWNS_ATTACK[cell].setBits(
+                    WHITE_PAWNS_ATTACK[cell] = WHITE_PAWNS_ATTACK[cell].setBits(
                             cordToBit(x - 1, y + 1),
                             cordToBit(x + 1, y + 1)
                     )
