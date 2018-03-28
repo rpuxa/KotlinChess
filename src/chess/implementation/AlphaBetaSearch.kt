@@ -17,7 +17,7 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
             val beta = 100000
             for (move in moves) {
                 position.makeMove(move, colorMove)
-                val score = -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth)
+                val score = -alphaBeta(position as BitBoard, -beta, -alpha, 1 - colorMove, depth)
                 position.unmakeMove(move, colorMove)
                 if (score > alpha) {
                     alpha = score
@@ -28,14 +28,14 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
         return betsMove!!
     }
 
-    private fun alphaBeta(position: AbstractPosition, alpha0: Int, beta: Int, colorMove: Int, depth: Int): Int {
+    private fun alphaBeta(position: BitBoard, alpha0: Int, beta: Int, colorMove: Int, depth: Int): Int {
         val result = position.result()
         val sign = if (colorMove == WHITE) 1 else -1
         if (result != CONTINUE) {
             if (result == BLACK_WINS)
-                return sign * -30000
+                return sign * (-30000 - depth)
             if (result == WHITE_WINS)
-                return sign * 30000
+                return sign * (30000 + depth)
             if (result == DRAW)
                 return 0
         }
@@ -43,9 +43,11 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
         if (depth <= 0)
             return sign * eval.evaluate(position)
         val moves = position.getSortMoves(colorMove, false)
+        position.putHash(moves)
         for (move in moves) {
             position.makeMove(move, colorMove)
             val score = -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth - 1)
+            move.score = score
             position.unmakeMove(move, colorMove)
             if (score >= beta)
                 return beta

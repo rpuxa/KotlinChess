@@ -4,9 +4,7 @@ import chess.Move
 
 interface AbstractPosition {
 
-    val sort: AbstractSortingMoves
-
-    fun getSortMoves(color: Int, onlyCaptures: Boolean) = sort.sort(getMoves(color, onlyCaptures))
+    fun getSortMoves(color: Int, onlyCaptures: Boolean): Array<Move>
 
     fun getMoves(color: Int, onlyCaptures: Boolean): Array<Move>
 

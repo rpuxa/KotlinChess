@@ -22,7 +22,7 @@ class SortMoves : AbstractSortingMoves {
     }
 
 
-    fun MWLVASort(moves: Array<Move>): Move? {
+    private fun MWLVASort(moves: Array<Move>): Move? {
          Arrays.sort(moves, MWLVA_COMPARATOR)
         if (moves[0].victim == KING)
             return moves[0]
@@ -34,9 +34,11 @@ class SortMoves : AbstractSortingMoves {
 
         private val MWLVA_COMPARATOR = Comparator<Move>{move1: Move, move2: Move ->
             if (move1.victim == NONE)
-                Integer.MAX_VALUE
+                 return@Comparator if (move2.victim == NONE) 0 else 1
+            if (move2.victim == NONE)
+                return@Comparator -1
             MWLVA_ARRAY_COSTS[move2.victim][move2.type] - MWLVA_ARRAY_COSTS[move1.victim][move2.type]
-        }}
+        }
 
         init {
             for (victim in KING..PAWN)

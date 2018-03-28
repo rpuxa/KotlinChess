@@ -34,9 +34,7 @@ val bitPosition = arrayOf(
         25, 14, 19,  9, 13,  8,  7,  6
 )
 
-fun Long.getLowestBit(): Int {
-    return bitPosition[(((this and -this) * 0x03F79D71B4CB0A89L) ushr 58).toInt()]
-}
+fun Long.getLowestBit() = bitPosition[(((this and -this) * 0x03F79D71B4CB0A89L) ushr 58).toInt()]
 
 fun Long.getPowerOfLowestBit() = this and -this
 

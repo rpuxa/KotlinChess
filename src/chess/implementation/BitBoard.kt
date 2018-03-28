@@ -1,12 +1,43 @@
 package chess.implementation
 
 import chess.*
+import chess.RunJava.count
 import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSortingMoves
 import chess.constants.*
 import chess.utils.*
+import java.util.*
+import kotlin.collections.ArrayList
 
-class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSortingMoves) : AbstractPosition {
+class BitBoard : AbstractPosition {
+    val figures: Array<LongArray>
+    private lateinit var sort: AbstractSortingMoves
+    var hash = 0L
+    private lateinit var hashingMoves: HashMap<Long, Array<Move>>
+    private lateinit var hashingPosition: HashMap<Long, BitBoard>
+    lateinit var lastPositions: ArrayDeque<Long>
+    private lateinit var zKeys: Array<Array<LongArray>>
+
+    constructor(figures: Array<LongArray>, sort: AbstractSortingMoves) {
+        this.figures = figures
+        this.sort = sort
+        zKeys = Array(2, { Array(6, { LongArray(64) }) })
+        hashingMoves = HashMap()
+        hashingPosition = HashMap()
+        lastPositions = ArrayDeque()
+        val random = Random()
+        for (color in WHITE..BLACK)
+            for (type in KING..PAWN)
+                for (cell in 0..63)
+                    zKeys[color][type][cell] = random.nextLong()
+
+    }
+
+    constructor(bitBoard: BitBoard) {
+        figures = arrayOf(bitBoard.figures[0].clone(), bitBoard.figures[1].clone(), bitBoard.figures[2].clone())
+        hash = bitBoard.hash
+    }
+
 
     companion object Positions {
         fun start(sort: AbstractSortingMoves): BitBoard {
@@ -40,6 +71,8 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
             bitBoard.figures[ALL][ROTATED45] = bitBoard.figures[ALL][DEFAULT].to45()
             bitBoard.figures[ALL][ROTATED_MINUS45] = bitBoard.figures[ALL][DEFAULT].toMinus45()
 
+            bitBoard.calculateHash()
+
             return bitBoard
         }
 
@@ -48,6 +81,15 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
                 LongArray(6),
                 LongArray(6)
         ), sort)
+    }
+
+    fun calculateHash() {
+        for (color in WHITE..BLACK)
+            for (type in KING..PAWN)
+                for (cell in 0..63) {
+                    if (figures[color][type] checkBit cell)
+                        hash = hash xor zKeys[color][type][cell]
+                }
     }
 
     private fun addMove(moves: ArrayList<Move>, from: Int, type: Int, mask0: Long, enemyColor: Int) {
@@ -75,6 +117,16 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
         }
     }
 
+    override fun getSortMoves(color: Int, onlyCaptures: Boolean): Array<Move> {
+//        val hashedMoves = hashingMoves[hash]
+//        if (hashedMoves == null || !equals(hashingPosition[hash]))
+        return sort.sort(getMoves(color, onlyCaptures))
+//        Arrays.sort(hashedMoves, {move1: Move, move2: Move ->
+//            move2.score - move1.score
+//        })
+//        return hashedMoves
+    }
+
     override fun getMoves(color: Int, onlyCaptures: Boolean): Array<Move> {
         val enemyColor = 1 - color
         val moves = ArrayList<Move>()
@@ -90,12 +142,12 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
                     PAWN ->
                         if (color == WHITE) {
                             if (!(figures[ALL][DEFAULT] checkBit (cell + BOARD_SIZE)) && !onlyCaptures)
-                                addMove(moves, cell, type, WHITE_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell >= A8)
-                            addMove(moves, cell, type, WHITE_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell >= A8)
+                                addMove(moves, cell, type, WHITE_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell >= A7)
+                            addMove(moves, cell, type, WHITE_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell >= A7)
                         } else {
                             if (!(figures[ALL][DEFAULT] checkBit (cell - BOARD_SIZE)) && !onlyCaptures)
-                                addMove(moves, cell, type, BLACK_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell >= A8)
-                            addMove(moves, cell, type, BLACK_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell <= H1)
+                                addMove(moves, cell, type, BLACK_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell <= H2)
+                            addMove(moves, cell, type, BLACK_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell <= H2)
                         }
                     KING -> addMove(moves, cell, type, if (onlyCaptures) KING_ATTACK[cell] and enemyFigures else KING_ATTACK[cell] and ourFiguresReverse, enemyColor)
                     KNIGHT -> addMove(moves, cell, type, if (onlyCaptures) KNIGHT_ATTACK[cell] and enemyFigures else KNIGHT_ATTACK[cell] and ourFiguresReverse, enemyColor)
@@ -135,9 +187,17 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
     }
 
     override fun makeMove(move: Move, color: Int) {
+        hash = hash xor zKeys[color][move.type][move.from] xor zKeys[color][move.type][move.to]
+        if (move.victim != NONE)
+            hash = hash xor zKeys[1 - color][move.victim][move.to]
+        lastPositions.addFirst(hash)
+
         val allColor = ALL_WHITES + color
         figures[color][move.type] = figures[color][move.type] zeroBit move.from
-        figures[color][move.type] = figures[color][move.type] setBit move.to
+        if (move.promotion == 0)
+            figures[color][move.type] = figures[color][move.type] setBit move.to
+        else
+            figures[color][move.promotion] = figures[color][move.promotion] setBit move.to
 
         figures[ALL][DEFAULT] = figures[ALL][DEFAULT] zeroBit move.from
         figures[ALL][ROTATED90] = figures[ALL][ROTATED90] zeroBit ROTATE_90[move.from]
@@ -159,9 +219,17 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
     }
 
     override fun unmakeMove(move: Move, color: Int) {
+        hash = hash xor zKeys[color][move.type][move.from] xor zKeys[color][move.type][move.to]
+        if (move.victim != NONE)
+            hash = hash xor zKeys[1 - color][move.victim][move.to]
+        lastPositions.pollFirst()
+
         val allColor = ALL_WHITES + color
         figures[color][move.type] = figures[color][move.type] setBit move.from
-        figures[color][move.type] = figures[color][move.type] zeroBit move.to
+        if (move.promotion == 0)
+            figures[color][move.type] = figures[color][move.type] zeroBit move.to
+        else
+            figures[color][move.promotion] = figures[color][move.promotion] zeroBit move.to
 
         figures[ALL][DEFAULT] = figures[ALL][DEFAULT] setBit move.from
         figures[ALL][ROTATED90] = figures[ALL][ROTATED90] setBit ROTATE_90[move.from]
@@ -184,6 +252,12 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
     }
 
     override fun result(): Int {
+        var isFirst = true
+        for (pos in lastPositions) {
+            if (!isFirst && pos == hash)
+                return DRAW
+            isFirst = false
+        }
         if (figures[WHITE][KING] == 0L)
             return BLACK_WINS
         if (figures[BLACK][KING] == 0L)
@@ -198,6 +272,32 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
                 return true
         }
         return false
+    }
+
+    fun isCheckMate(to: Int): Boolean {
+        for (move in getMoves(to, false)) {
+            var eaten = false
+            makeMove(move, to)
+            for (m in getMoves(1 - to, true))
+                if (m.victim == KING) {
+                    eaten = true
+                    break
+                }
+            unmakeMove(move, to)
+            if (!eaten)
+                return false
+        }
+        return true
+    }
+
+    fun equals(bitBoard: BitBoard) = Arrays.equals(figures[WHITE], bitBoard.figures[WHITE]) && Arrays.equals(figures[BLACK], bitBoard.figures[BLACK])
+
+
+
+    fun putHash(sortMoves: Array<Move>) {
+        count++
+           hashingMoves.put(hash, sortMoves)
+//        hashingPosition[hash] = BitBoard(this)
     }
 
 }
