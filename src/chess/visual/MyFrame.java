@@ -31,6 +31,9 @@ public class MyFrame extends JFrame {
         frameInitialise();
     }
 
+    public void setListener(MoveListener listener) {
+        this.listener = listener;
+    }
 
     private void frameInitialise() {
         super.frameInit();

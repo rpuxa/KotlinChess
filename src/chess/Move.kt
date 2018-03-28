@@ -1,6 +1,6 @@
 package chess
 
-data class Move(var from: Int, var to: Int, var type: Int, var killed: Int, var promotion: Int) {
+data class Move(var from: Int, var to: Int, var type: Int, var victim: Int, var promotion: Int) {
 
     override fun equals(other: Any?): Boolean {
         if (other !is Move)

@@ -89,11 +89,11 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
                 when (type) {
                     PAWN ->
                         if (color == WHITE) {
-                            if (!(board checkBit (cell + BOARD_SIZE)) && !onlyCaptures)
+                            if (!(figures[ALL][DEFAULT] checkBit (cell + BOARD_SIZE)) && !onlyCaptures)
                                 addMove(moves, cell, type, WHITE_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell >= A8)
                             addMove(moves, cell, type, WHITE_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell >= A8)
                         } else {
-                            if (!(board checkBit (cell - BOARD_SIZE)) && !onlyCaptures)
+                            if (!(figures[ALL][DEFAULT] checkBit (cell - BOARD_SIZE)) && !onlyCaptures)
                                 addMove(moves, cell, type, BLACK_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell >= A8)
                             addMove(moves, cell, type, BLACK_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell <= H1)
                         }
@@ -152,8 +152,8 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
         figures[ALL][allColor] = figures[ALL][allColor] setBit move.to
 
         val enemyColor = 1 - color
-        if (move.killed != NONE) {
-            figures[enemyColor][move.killed] = figures[enemyColor][move.killed] zeroBit move.to
+        if (move.victim != NONE) {
+            figures[enemyColor][move.victim] = figures[enemyColor][move.victim] zeroBit move.to
             figures[ALL][ALL_WHITES + enemyColor] = figures[ALL][ALL_WHITES + enemyColor] zeroBit move.to
         }
     }
@@ -172,8 +172,8 @@ class BitBoard(val figures: Array<LongArray>, override val sort: AbstractSorting
         figures[ALL][allColor] = figures[ALL][allColor] zeroBit move.to
 
         val enemyColor = 1 - color
-        if (move.killed != NONE) {
-            figures[enemyColor][move.killed] = figures[enemyColor][move.killed] setBit move.to
+        if (move.victim != NONE) {
+            figures[enemyColor][move.victim] = figures[enemyColor][move.victim] setBit move.to
             figures[ALL][ALL_WHITES + enemyColor] = figures[ALL][ALL_WHITES + enemyColor] setBit move.to
         } else {
             figures[ALL][DEFAULT] = figures[ALL][DEFAULT] zeroBit move.to

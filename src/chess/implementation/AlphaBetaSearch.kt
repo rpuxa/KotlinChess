@@ -4,10 +4,7 @@ import chess.Move
 import chess.abstracts.AbstractEvaluate
 import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSearch
-import chess.constants.BLACK_WINS
-import chess.constants.CONTINUE
-import chess.constants.DRAW
-import chess.constants.WHITE_WINS
+import chess.constants.*
 
 class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
     var eval: AbstractEvaluate = evaluate
@@ -33,17 +30,18 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
 
     private fun alphaBeta(position: AbstractPosition, alpha0: Int, beta: Int, colorMove: Int, depth: Int): Int {
         val result = position.result()
+        val sign = if (colorMove == WHITE) 1 else -1
         if (result != CONTINUE) {
             if (result == BLACK_WINS)
-                return -30000
+                return sign * -30000
             if (result == WHITE_WINS)
-                return 30000
+                return sign * 30000
             if (result == DRAW)
                 return 0
         }
         var alpha = alpha0
         if (depth <= 0)
-            return -colorMove * eval.evaluate(position)
+            return sign * eval.evaluate(position)
         val moves = position.getSortMoves(colorMove, false)
         for (move in moves) {
             position.makeMove(move, colorMove)
