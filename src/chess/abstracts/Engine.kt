@@ -9,7 +9,7 @@ class Engine(val position: AbstractPosition,
         movesGen()
     }
 
-    fun getAIMove() = search.search(position, turn, 6)
+    fun getAIMove() = search.search(position, turn, 7)
 
     fun makeMove(from: Int, to: Int) {
         position.makeMove(from.toByte(), to.toByte())

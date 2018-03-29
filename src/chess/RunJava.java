@@ -12,10 +12,9 @@ import static chess.constants.FiguresKt.CONTINUE;
 
 public class RunJava {
 
-    public static int count = 0;
-    public static long allTIme = 0;
+    public static long ALL_TIME = 0;
 
-    private static final boolean PLAY_WITH_COMPUTER = false;
+    private static final boolean PLAY_WITH_COMPUTER = true;
     private static final int COMPUTER_PLAY_BY = BLACK;
 
     public static void main(String[] args) throws InterruptedException {
@@ -56,16 +55,17 @@ public class RunJava {
         while (true) {
             long time = System.currentTimeMillis();
             int move = engine.getAIMove();
-           // System.out.println(System.currentTimeMillis() - time + "    " + allTIme);
+            System.out.println(System.currentTimeMillis() - time + "    " + ALL_TIME);
             engine.makeMove(move);
             frame.setPosition((BitBoard) engine.getPosition());
-            while (System.currentTimeMillis() - time < 500)
+            while (System.currentTimeMillis() - time < 1500)
                 Thread.sleep(10);
 
             if (engine.getPosition().result() != CONTINUE || ((BitBoard) engine.getPosition()).isCheckMate(engine.getTurn())) {
                 int a = engine.getPosition().result();
                 return;
             }
+            return;
         }
     }
 }

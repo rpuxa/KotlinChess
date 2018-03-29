@@ -6,13 +6,13 @@ import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSortingMoves
 import chess.utils.*
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.system.measureNanoTime
 
 class BitBoard : AbstractPosition {
     val figures: Array<LongArray>
     private lateinit var sort: AbstractSortingMoves
     var hash = 0L
+    private val moves = Array(100, { 0 })
+    private var size = 0
     private val hashingMoves: HashMap<Long, Array<Int>> = HashMap()
     //  private lateinit var hashingPosition: HashMap<Long, BitBoard>
     lateinit var lastPositions: ArrayDeque<Long>
@@ -91,11 +91,11 @@ class BitBoard : AbstractPosition {
                 }
     }
 
-    private fun addMove(moves: ArrayList<Int>, from: Int, type: Int, mask0: Long, enemyColor: Int) {
-        addMove(moves, from, type, mask0, enemyColor, false)
+    private fun addMove(from: Int, type: Int, mask0: Long, enemyColor: Int) {
+        addMove(from, type, mask0, enemyColor, false)
     }
 
-    private fun addMove(moves: ArrayList<Int>, from: Int, type: Int, mask0: Long, enemyColor: Int, promotion: Boolean) {
+    private fun addMove(from: Int, type: Int, mask0: Long, enemyColor: Int, promotion: Boolean) {
         var mask = mask0
         while (mask != 0L) {
             val cell = mask.getLowestBit()
@@ -109,10 +109,18 @@ class BitBoard : AbstractPosition {
                 }
             if (promotion) {
                 for (figure in ROOK..QUEEN) {
-                    moves.add(createMove(from, cell, type, killed, figure))
+                    moves[size] = createMove(from, cell, type, killed, figure)
+                    size++
                 }
             } else {
-                moves.add(createMove(from, cell, type, killed, 0))
+                var m = createMove(from, cell, type, killed, 0)
+                var time = System.nanoTime()
+                moves[size] = m
+
+                RunJava.ALL_TIME += System.nanoTime() - time
+                size++
+
+
             }
 
         }
@@ -129,7 +137,7 @@ class BitBoard : AbstractPosition {
     }
 
     override fun getMoves(color: Int, onlyCaptures: Boolean): Array<Int> {
-        val moves = ArrayList<Int>()
+        size = 0
         val enemyColor = 1 - color
         val ourFigures = figures[ALL][if (color == WHITE) ALL_WHITES else ALL_BLACKS]
         val enemyFigures = figures[ALL][if (color == WHITE) ALL_BLACKS else ALL_WHITES]
@@ -143,32 +151,32 @@ class BitBoard : AbstractPosition {
                     PAWN ->
                         if (color == WHITE) {
                             if (!(figures[ALL][DEFAULT] checkBit (cell + BOARD_SIZE)) && !onlyCaptures)
-                                addMove(moves, cell, type, WHITE_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell >= A7)
-                            addMove(moves, cell, type, WHITE_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell >= A7)
+                                addMove(cell, type, WHITE_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell >= A7)
+                            addMove(cell, type, WHITE_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell >= A7)
                         } else {
                             if (!(figures[ALL][DEFAULT] checkBit (cell - BOARD_SIZE)) && !onlyCaptures)
-                                addMove(moves, cell, type, BLACK_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell <= H2)
-                            addMove(moves, cell, type, BLACK_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell <= H2)
+                                addMove(cell, type, BLACK_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell <= H2)
+                            addMove(cell, type, BLACK_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell <= H2)
                         }
-                    KING -> addMove(moves, cell, type, if (onlyCaptures) KING_ATTACK[cell] and enemyFigures else KING_ATTACK[cell] and ourFiguresReverse, enemyColor)
-                    KNIGHT -> addMove(moves, cell, type, if (onlyCaptures) KNIGHT_ATTACK[cell] and enemyFigures else KNIGHT_ATTACK[cell] and ourFiguresReverse, enemyColor)
+                    KING -> addMove(cell, type, if (onlyCaptures) KING_ATTACK[cell] and enemyFigures else KING_ATTACK[cell] and ourFiguresReverse, enemyColor)
+                    KNIGHT -> addMove(cell, type, if (onlyCaptures) KNIGHT_ATTACK[cell] and enemyFigures else KNIGHT_ATTACK[cell] and ourFiguresReverse, enemyColor)
                     BISHOP -> {
                         val attack = BISHOP_ATTACKS45[cell][((figures[ALL][ROTATED45] ushr SHIFT45[cell]) and 255).toInt()] or BISHOP_ATTACKS_MINUS45[cell][((figures[ALL][ROTATED_MINUS45] ushr SHIFT_MINUS45[cell]) and 255).toInt()]
-                        addMove(moves, cell, type, if (onlyCaptures) attack and enemyFigures else attack and ourFiguresReverse, enemyColor)
+                        addMove(cell, type, if (onlyCaptures) attack and enemyFigures else attack and ourFiguresReverse, enemyColor)
                     }
                     ROOK -> {
                         val attack = ROOK_ATTACKS[cell][((figures[ALL][DEFAULT] ushr SHIFT[cell]) and 255).toInt()] or ROOK_ATTACKS90[cell][((figures[ALL][ROTATED90] ushr SHIFT90[cell]) and 255).toInt()]
-                        addMove(moves, cell, type, if (onlyCaptures) attack and enemyFigures else attack and ourFiguresReverse, enemyColor)
+                        addMove(cell, type, if (onlyCaptures) attack and enemyFigures else attack and ourFiguresReverse, enemyColor)
                     }
                     QUEEN -> {
                         val attack = BISHOP_ATTACKS45[cell][((figures[ALL][ROTATED45] ushr SHIFT45[cell]) and 255).toInt()] or BISHOP_ATTACKS_MINUS45[cell][((figures[ALL][ROTATED_MINUS45] ushr SHIFT_MINUS45[cell]) and 255).toInt()] or ROOK_ATTACKS[cell][((figures[ALL][DEFAULT] ushr SHIFT[cell]) and 255).toInt()] or ROOK_ATTACKS90[cell][((figures[ALL][ROTATED90] ushr SHIFT90[cell]) and 255).toInt()]
-                        addMove(moves, cell, type, if (onlyCaptures) attack and enemyFigures else attack and ourFiguresReverse, enemyColor)
+                        addMove(cell, type, if (onlyCaptures) attack and enemyFigures else attack and ourFiguresReverse, enemyColor)
                     }
                 }
             }
         }
 
-        return moves.toTypedArray()
+        return Arrays.copyOf(moves, size)
     }
 
     override fun makeMove(from: Byte, to: Byte) {
@@ -280,7 +288,7 @@ class BitBoard : AbstractPosition {
     fun isMoveLegal(from: Int, to: Int, color: Int): Boolean {
         val move = createMove(from, to, 0, 0, 0)
         for (m in getMoves(color, false)) {
-            if (move == m)
+            if (move.getFrom() == m.getFrom() && move.getTo() == m.getTo())
                 return true
         }
         return false
@@ -306,7 +314,7 @@ class BitBoard : AbstractPosition {
 
 
     fun putHash(sortMoves: Array<Int>) {
-        // hashingMoves.put(hash, sortMoves)
+       // hashingMoves.put(hash, sortMoves)
         // hashingPosition[hash] = BitBoard(this)
     }
 

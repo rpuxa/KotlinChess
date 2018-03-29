@@ -1,5 +1,8 @@
 package chess.utils
 
+import chess.RunJava
+import kotlin.system.measureNanoTime
+
 
 fun createMove(from: Int, to: Int, type: Int, victim: Int, promotion: Int): Int {
     var n = from
