@@ -114,10 +114,7 @@ class BitBoard : AbstractPosition {
                 }
             } else {
                 var m = createMove(from, cell, type, killed, 0)
-                var time = System.nanoTime()
                 moves[size] = m
-
-                RunJava.ALL_TIME += System.nanoTime() - time
                 size++
 
 
@@ -322,5 +319,6 @@ class BitBoard : AbstractPosition {
 
     fun getHashingMove() = hashingMoves[hash]
 
+    fun clearHash() = hashingMoves.clear()
 }
 

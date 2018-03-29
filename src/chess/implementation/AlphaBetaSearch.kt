@@ -4,14 +4,16 @@ import chess.abstracts.AbstractEvaluate
 import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSearch
 import chess.constants.*
+import chess.implementation.Eval.Costs.FIGURES_COSTS
 import chess.utils.getVictim
-import com.sun.org.apache.xpath.internal.operations.Bool
 
 class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
     var eval: AbstractEvaluate = evaluate
     var initDepth = 0
 
     override fun search(position: AbstractPosition, colorMove: Int, maxDepth: Int): Int {
+        if (position !is BitBoard)
+            return 0
         val moves = position.getSortMoves(colorMove, false)
         var betsMove: Int? = null
             for (depth in 0..maxDepth) {
@@ -20,7 +22,7 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
                 for (move in moves) {
                     position.makeMove(move, colorMove)
                     initDepth = depth
-                    val score = -alphaBeta(position as BitBoard, -beta, -alpha, 1 - colorMove, depth, false, true)
+                    val score = -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth, false, true)
                     position.unmakeMove(move, colorMove)
                     if (score > alpha) {
                         alpha = score
@@ -29,10 +31,11 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
 
                 }
             }
+        position.clearHash()
         return betsMove!!
     }
 
-    private fun alphaBeta(position: BitBoard, alpha0: Int, beta: Int, colorMove: Int, depth: Int, isNullMove: Boolean, canDoNullMove: Boolean): Int {
+    private fun alphaBeta(position: BitBoard, alpha0: Int, beta: Int, colorMove: Int, depth: Int, isNullMove: Boolean, noTaking: Boolean): Int {
         val result = position.result()
         if (result != CONTINUE) {
             if (result == BLACK_WINS || result == WHITE_WINS)
@@ -43,8 +46,15 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
         var alpha = alpha0
         if (depth <= 0)
             return (if (colorMove == WHITE) 1 else -1) * eval.evaluate(position)
-        if (!isNullMove && canDoNullMove && initDepth - depth >= 2 && !position.isCheckTo(colorMove) && -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth - 3, true, true) >= beta)
-            return beta
+        if (!isNullMove && noTaking && !position.isCheckTo(colorMove)) { //Puring
+            val evaluate = eval.evaluate(position)
+            if (depth <= 2 && evaluate - 50 >= beta) //Futility Puring
+                return beta
+            if (depth <= 4 && evaluate - FIGURES_COSTS[QUEEN] >= beta) //Razoring
+                return beta
+            if (initDepth - depth >= 2 && -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth - 3, true, true) >= beta) // Null Move
+                return beta
+        }
         val moves = position.getSortMoves(colorMove, false)
         for (move in moves) {
             position.makeMove(move, colorMove)

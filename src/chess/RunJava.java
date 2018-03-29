@@ -59,14 +59,14 @@ public class RunJava {
             System.out.println(System.currentTimeMillis() - time + "    " + ALL_TIME);
             engine.makeMove(move);
             frame.setPosition((BitBoard) engine.getPosition());
-            while (System.currentTimeMillis() - time < 1500)
+            while (System.currentTimeMillis() - time < 0)
                 Thread.sleep(10);
 
             if (engine.getPosition().result() != CONTINUE || ((BitBoard) engine.getPosition()).isCheckMate(engine.getTurn())) {
                 int a = engine.getPosition().result();
+                System.out.println(a);
                 return;
             }
-            return;
         }
     }
 }
