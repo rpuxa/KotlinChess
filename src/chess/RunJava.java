@@ -9,13 +9,14 @@ import chess.visual.MyFrame;
 
 import static chess.constants.FiguresKt.BLACK;
 import static chess.constants.FiguresKt.CONTINUE;
+import static chess.constants.FiguresKt.WHITE;
 
 public class RunJava {
 
     public static long ALL_TIME = 0;
 
-    private static final boolean PLAY_WITH_COMPUTER = true;
-    private static final int COMPUTER_PLAY_BY = BLACK;
+    private static final boolean PLAY_WITH_COMPUTER = false;
+    private static final int COMPUTER_PLAY_BY = WHITE;
 
     public static void main(String[] args) throws InterruptedException {
         if (PLAY_WITH_COMPUTER)

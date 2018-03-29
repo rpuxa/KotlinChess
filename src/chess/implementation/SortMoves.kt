@@ -11,21 +11,30 @@ import java.util.*
 
 class SortMoves : AbstractSortingMoves {
 
-    override fun sort(moves: Array<Int>): Array<Int> {
+    override fun sort(moves: Array<Int>, position: BitBoard): Array<Int> {
         //MW/LVA sort
-
         val mwlva = MWLVASort(moves)
         if (mwlva != null)
             return arrayOf(mwlva)
-
+        val hashing = position.getHashingMove()
+        if (hashing != null) {
+            swap(moves, moves.indexOf(hashing))
+        }
 
         return moves
     }
 
+    private fun swap(a: Array<Int>, from: Int) {
+        if (from != -1) {
+            val tmp = a[0]
+            a[0] = a[from]
+            a[from] = tmp
+        }
+    }
 
     private fun MWLVASort(moves: Array<Int>): Int? {
         Arrays.sort(moves, MWLVA_COMPARATOR)
-        if (moves[0].getVictim() == KING)
+        if (!moves.isEmpty() && moves[0].getVictim() == KING)
             return moves[0]
         return null
     }

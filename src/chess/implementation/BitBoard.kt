@@ -13,7 +13,7 @@ class BitBoard : AbstractPosition {
     var hash = 0L
     private val moves = Array(100, { 0 })
     private var size = 0
-    private val hashingMoves: HashMap<Long, Array<Int>> = HashMap()
+    private val hashingMoves: HashMap<Long, Int> = HashMap()
     //  private lateinit var hashingPosition: HashMap<Long, BitBoard>
     lateinit var lastPositions: ArrayDeque<Long>
     private lateinit var zKeys: Array<Array<LongArray>>
@@ -129,7 +129,7 @@ class BitBoard : AbstractPosition {
     override fun getSortMoves(color: Int, onlyCaptures: Boolean): Array<Int> {
 //        val hashedMoves = hashingMoves[hash]
 //        if (hashedMoves == null || !equals(hashingPosition[hash]))
-        return sort.sort(getMoves(color, onlyCaptures))
+        return sort.sort(getMoves(color, onlyCaptures), this)
 //        Arrays.sort(hashedMoves, {move1: Move, move2: Move ->
 //            move2.score - move1.score
 //        })
@@ -310,13 +310,17 @@ class BitBoard : AbstractPosition {
         return true
     }
 
+    fun isCheckTo(color: Int) = getMoves(1 - color, true).any { it.getVictim() == KING }
+
+
     fun equals(bitBoard: BitBoard) = Arrays.equals(figures[WHITE], bitBoard.figures[WHITE]) && Arrays.equals(figures[BLACK], bitBoard.figures[BLACK])
 
 
-    fun putHash(sortMoves: Array<Int>) {
-       // hashingMoves.put(hash, sortMoves)
-        // hashingPosition[hash] = BitBoard(this)
+    fun putHash(move: Int) {
+        hashingMoves.put(hash, move)
     }
+
+    fun getHashingMove() = hashingMoves[hash]
 
 }
 

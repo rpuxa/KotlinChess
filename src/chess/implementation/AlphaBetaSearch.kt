@@ -4,6 +4,8 @@ import chess.abstracts.AbstractEvaluate
 import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSearch
 import chess.constants.*
+import chess.utils.getVictim
+import com.sun.org.apache.xpath.internal.operations.Bool
 
 class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
     var eval: AbstractEvaluate = evaluate
@@ -18,7 +20,7 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
                 for (move in moves) {
                     position.makeMove(move, colorMove)
                     initDepth = depth
-                    val score = -alphaBeta(position as BitBoard, -beta, -alpha, 1 - colorMove, depth, false)
+                    val score = -alphaBeta(position as BitBoard, -beta, -alpha, 1 - colorMove, depth, false, true)
                     position.unmakeMove(move, colorMove)
                     if (score > alpha) {
                         alpha = score
@@ -30,30 +32,26 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
         return betsMove!!
     }
 
-    private fun alphaBeta(position: BitBoard, alpha0: Int, beta: Int, colorMove: Int, depth: Int, isNullMove: Boolean): Int {
+    private fun alphaBeta(position: BitBoard, alpha0: Int, beta: Int, colorMove: Int, depth: Int, isNullMove: Boolean, canDoNullMove: Boolean): Int {
         val result = position.result()
-        val sign = if (colorMove == WHITE) 1 else -1
         if (result != CONTINUE) {
-            if (result == BLACK_WINS)
-                return sign * (-30000 - depth)
-            if (result == WHITE_WINS)
-                return sign * (30000 + depth)
+            if (result == BLACK_WINS || result == WHITE_WINS)
+                return -30000 - depth
             if (result == DRAW)
                 return 0
         }
         var alpha = alpha0
         if (depth <= 0)
-            return sign * eval.evaluate(position)
-        if (!isNullMove && initDepth - depth >= 2 && -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth - 3, true) >= beta)
+            return (if (colorMove == WHITE) 1 else -1) * eval.evaluate(position)
+        if (!isNullMove && canDoNullMove && initDepth - depth >= 2 && !position.isCheckTo(colorMove) && -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth - 3, true, true) >= beta)
             return beta
         val moves = position.getSortMoves(colorMove, false)
-        position.putHash(moves)
         for (move in moves) {
             position.makeMove(move, colorMove)
-            val score = -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth - 1, isNullMove)
-            //move.score = score
+            val score = -alphaBeta(position, -beta, -alpha, 1 - colorMove, depth - 1, isNullMove, move.getVictim() == NONE)
             position.unmakeMove(move, colorMove)
             if (score >= beta) {
+                position.putHash(move)
                 return beta
             }
             if (score > alpha)
