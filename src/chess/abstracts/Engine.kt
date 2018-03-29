@@ -1,6 +1,5 @@
 package chess.abstracts
 
-import chess.Move
 import chess.movesGen
 
 class Engine(val position: AbstractPosition,
@@ -13,11 +12,11 @@ class Engine(val position: AbstractPosition,
     fun getAIMove() = search.search(position, turn, 6)
 
     fun makeMove(from: Int, to: Int) {
-        position.makeMove(from, to)
+        position.makeMove(from.toByte(), to.toByte())
         turn = 1 - turn
     }
 
-    fun makeMove(move: Move) {
+    fun makeMove(move: Int) {
         position.makeMove(move, turn)
         turn = 1 - turn
     }

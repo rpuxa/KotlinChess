@@ -13,6 +13,7 @@ import static chess.constants.FiguresKt.CONTINUE;
 public class RunJava {
 
     public static int count = 0;
+    public static long allTIme = 0;
 
     private static final boolean PLAY_WITH_COMPUTER = false;
     private static final int COMPUTER_PLAY_BY = BLACK;
@@ -41,7 +42,7 @@ public class RunJava {
         while (true) {
             while (engine.getTurn() != COMPUTER_PLAY_BY)
                 Thread.sleep(10);
-            Move move = engine.getAIMove();
+            int move = engine.getAIMove();
             engine.makeMove(move);
             frame.setPosition((BitBoard) engine.getPosition());
         }
@@ -54,12 +55,13 @@ public class RunJava {
 
         while (true) {
             long time = System.currentTimeMillis();
-            Move move = engine.getAIMove();
-            System.out.println(System.currentTimeMillis() - time);
+            int move = engine.getAIMove();
+           // System.out.println(System.currentTimeMillis() - time + "    " + allTIme);
             engine.makeMove(move);
             frame.setPosition((BitBoard) engine.getPosition());
             while (System.currentTimeMillis() - time < 500)
                 Thread.sleep(10);
+
             if (engine.getPosition().result() != CONTINUE || ((BitBoard) engine.getPosition()).isCheckMate(engine.getTurn())) {
                 int a = engine.getPosition().result();
                 return;

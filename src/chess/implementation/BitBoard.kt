@@ -1,20 +1,20 @@
 package chess.implementation
 
 import chess.*
-import chess.RunJava.count
+import chess.constants.*
 import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSortingMoves
-import chess.constants.*
 import chess.utils.*
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.system.measureNanoTime
 
 class BitBoard : AbstractPosition {
     val figures: Array<LongArray>
     private lateinit var sort: AbstractSortingMoves
     var hash = 0L
-    private lateinit var hashingMoves: HashMap<Long, Array<Move>>
-    private lateinit var hashingPosition: HashMap<Long, BitBoard>
+    private val hashingMoves: HashMap<Long, Array<Int>> = HashMap()
+    //  private lateinit var hashingPosition: HashMap<Long, BitBoard>
     lateinit var lastPositions: ArrayDeque<Long>
     private lateinit var zKeys: Array<Array<LongArray>>
 
@@ -22,8 +22,7 @@ class BitBoard : AbstractPosition {
         this.figures = figures
         this.sort = sort
         zKeys = Array(2, { Array(6, { LongArray(64) }) })
-        hashingMoves = HashMap()
-        hashingPosition = HashMap()
+        // hashingPosition = HashMap()
         lastPositions = ArrayDeque()
         val random = Random()
         for (color in WHITE..BLACK)
@@ -92,11 +91,11 @@ class BitBoard : AbstractPosition {
                 }
     }
 
-    private fun addMove(moves: ArrayList<Move>, from: Int, type: Int, mask0: Long, enemyColor: Int) {
+    private fun addMove(moves: ArrayList<Int>, from: Int, type: Int, mask0: Long, enemyColor: Int) {
         addMove(moves, from, type, mask0, enemyColor, false)
     }
 
-    private fun addMove(moves: ArrayList<Move>, from: Int, type: Int, mask0: Long, enemyColor: Int, promotion: Boolean) {
+    private fun addMove(moves: ArrayList<Int>, from: Int, type: Int, mask0: Long, enemyColor: Int, promotion: Boolean) {
         var mask = mask0
         while (mask != 0L) {
             val cell = mask.getLowestBit()
@@ -110,14 +109,16 @@ class BitBoard : AbstractPosition {
                 }
             if (promotion) {
                 for (figure in ROOK..QUEEN) {
-                    moves.add(Move(from, cell, type, killed, figure))
+                    moves.add(createMove(from, cell, type, killed, figure))
                 }
-            } else
-                moves.add(Move(from, cell, type, killed, 0))
+            } else {
+                moves.add(createMove(from, cell, type, killed, 0))
+            }
+
         }
     }
 
-    override fun getSortMoves(color: Int, onlyCaptures: Boolean): Array<Move> {
+    override fun getSortMoves(color: Int, onlyCaptures: Boolean): Array<Int> {
 //        val hashedMoves = hashingMoves[hash]
 //        if (hashedMoves == null || !equals(hashingPosition[hash]))
         return sort.sort(getMoves(color, onlyCaptures))
@@ -127,9 +128,9 @@ class BitBoard : AbstractPosition {
 //        return hashedMoves
     }
 
-    override fun getMoves(color: Int, onlyCaptures: Boolean): Array<Move> {
+    override fun getMoves(color: Int, onlyCaptures: Boolean): Array<Int> {
+        val moves = ArrayList<Int>()
         val enemyColor = 1 - color
-        val moves = ArrayList<Move>()
         val ourFigures = figures[ALL][if (color == WHITE) ALL_WHITES else ALL_BLACKS]
         val enemyFigures = figures[ALL][if (color == WHITE) ALL_BLACKS else ALL_WHITES]
         val ourFiguresReverse = ourFigures.inv()
@@ -166,88 +167,99 @@ class BitBoard : AbstractPosition {
                 }
             }
         }
+
         return moves.toTypedArray()
     }
 
-    override fun makeMove(from: Int, to: Int) {
-        val color = if (figures[ALL][ALL_WHITES] checkBit from) WHITE else BLACK
+    override fun makeMove(from: Byte, to: Byte) {
+        val color = if (figures[ALL][ALL_WHITES] checkBit from.toInt()) WHITE else BLACK
         var killed = NONE
         for (t in KING..PAWN)
-            if ((1L shl to) and figures[1 - color][t] != 0L) {
+            if ((1L shl to.toInt()) and figures[1 - color][t] != 0L) {
                 killed = t
                 break
             }
         var type = 0
         for (t in KING..PAWN)
-            if (figures[color][t] checkBit from) {
+            if (figures[color][t] checkBit from.toInt()) {
                 type = t
                 break
             }
-        makeMove(Move(from, to, type, killed, 0), color)
+        makeMove(createMove(from.toInt(), to.toInt(), type, killed, 0), color)
     }
 
-    override fun makeMove(move: Move, color: Int) {
-        hash = hash xor zKeys[color][move.type][move.from] xor zKeys[color][move.type][move.to]
-        if (move.victim != NONE)
-            hash = hash xor zKeys[1 - color][move.victim][move.to]
+    override fun makeMove(move: Int, color: Int) {
+        val type = move.getType()
+        val from = move.getFrom()
+        val to = move.getTo()
+        val promotion = move.getPromotion()
+        val victim = move.getVictim()
+        hash = hash xor zKeys[color][type][from] xor zKeys[color][type][to]
+        if (victim != NONE)
+            hash = hash xor zKeys[1 - color][victim][to]
         lastPositions.addFirst(hash)
 
         val allColor = ALL_WHITES + color
-        figures[color][move.type] = figures[color][move.type] zeroBit move.from
-        if (move.promotion == 0)
-            figures[color][move.type] = figures[color][move.type] setBit move.to
+        figures[color][type] = figures[color][type] zeroBit from
+        if (promotion == 0)
+            figures[color][type] = figures[color][type] setBit to
         else
-            figures[color][move.promotion] = figures[color][move.promotion] setBit move.to
+            figures[color][promotion] = figures[color][promotion] setBit to
 
-        figures[ALL][DEFAULT] = figures[ALL][DEFAULT] zeroBit move.from
-        figures[ALL][ROTATED90] = figures[ALL][ROTATED90] zeroBit ROTATE_90[move.from]
-        figures[ALL][ROTATED45] = figures[ALL][ROTATED45] zeroBit ROTATE_45[move.from]
-        figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] zeroBit ROTATE_MINUS45[move.from]
-        figures[ALL][allColor] = figures[ALL][allColor] zeroBit move.from
+        figures[ALL][DEFAULT] = figures[ALL][DEFAULT] zeroBit from
+        figures[ALL][ROTATED90] = figures[ALL][ROTATED90] zeroBit ROTATE_90[from]
+        figures[ALL][ROTATED45] = figures[ALL][ROTATED45] zeroBit ROTATE_45[from]
+        figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] zeroBit ROTATE_MINUS45[from]
+        figures[ALL][allColor] = figures[ALL][allColor] zeroBit from
 
-        figures[ALL][DEFAULT] = figures[ALL][DEFAULT] setBit move.to
-        figures[ALL][ROTATED90] = figures[ALL][ROTATED90] setBit ROTATE_90[move.to]
-        figures[ALL][ROTATED45] = figures[ALL][ROTATED45] setBit ROTATE_45[move.to]
-        figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] setBit ROTATE_MINUS45[move.to]
-        figures[ALL][allColor] = figures[ALL][allColor] setBit move.to
+        figures[ALL][DEFAULT] = figures[ALL][DEFAULT] setBit to
+        figures[ALL][ROTATED90] = figures[ALL][ROTATED90] setBit ROTATE_90[to]
+        figures[ALL][ROTATED45] = figures[ALL][ROTATED45] setBit ROTATE_45[to]
+        figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] setBit ROTATE_MINUS45[to]
+        figures[ALL][allColor] = figures[ALL][allColor] setBit to
 
         val enemyColor = 1 - color
-        if (move.victim != NONE) {
-            figures[enemyColor][move.victim] = figures[enemyColor][move.victim] zeroBit move.to
-            figures[ALL][ALL_WHITES + enemyColor] = figures[ALL][ALL_WHITES + enemyColor] zeroBit move.to
+        if (victim != NONE) {
+            figures[enemyColor][victim] = figures[enemyColor][victim] zeroBit to
+            figures[ALL][ALL_WHITES + enemyColor] = figures[ALL][ALL_WHITES + enemyColor] zeroBit to
         }
     }
 
-    override fun unmakeMove(move: Move, color: Int) {
-        hash = hash xor zKeys[color][move.type][move.from] xor zKeys[color][move.type][move.to]
-        if (move.victim != NONE)
-            hash = hash xor zKeys[1 - color][move.victim][move.to]
+    override fun unmakeMove(move: Int, color: Int) {
+        val type = move.getType()
+        val from = move.getFrom()
+        val to = move.getTo()
+        val promotion = move.getPromotion()
+        val victim = move.getVictim()
+        hash = hash xor zKeys[color][type][from] xor zKeys[color][type][to]
+        if (victim != NONE)
+            hash = hash xor zKeys[1 - color][victim][to]
         lastPositions.pollFirst()
 
         val allColor = ALL_WHITES + color
-        figures[color][move.type] = figures[color][move.type] setBit move.from
-        if (move.promotion == 0)
-            figures[color][move.type] = figures[color][move.type] zeroBit move.to
+        figures[color][type] = figures[color][type] setBit from
+        if (promotion == 0)
+            figures[color][type] = figures[color][type] zeroBit to
         else
-            figures[color][move.promotion] = figures[color][move.promotion] zeroBit move.to
+            figures[color][promotion] = figures[color][promotion] zeroBit to
 
-        figures[ALL][DEFAULT] = figures[ALL][DEFAULT] setBit move.from
-        figures[ALL][ROTATED90] = figures[ALL][ROTATED90] setBit ROTATE_90[move.from]
-        figures[ALL][ROTATED45] = figures[ALL][ROTATED45] setBit ROTATE_45[move.from]
-        figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] setBit ROTATE_MINUS45[move.from]
-        figures[ALL][allColor] = figures[ALL][allColor] setBit move.from
+        figures[ALL][DEFAULT] = figures[ALL][DEFAULT] setBit from
+        figures[ALL][ROTATED90] = figures[ALL][ROTATED90] setBit ROTATE_90[from]
+        figures[ALL][ROTATED45] = figures[ALL][ROTATED45] setBit ROTATE_45[from]
+        figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] setBit ROTATE_MINUS45[from]
+        figures[ALL][allColor] = figures[ALL][allColor] setBit from
 
-        figures[ALL][allColor] = figures[ALL][allColor] zeroBit move.to
+        figures[ALL][allColor] = figures[ALL][allColor] zeroBit to
 
         val enemyColor = 1 - color
-        if (move.victim != NONE) {
-            figures[enemyColor][move.victim] = figures[enemyColor][move.victim] setBit move.to
-            figures[ALL][ALL_WHITES + enemyColor] = figures[ALL][ALL_WHITES + enemyColor] setBit move.to
+        if (victim != NONE) {
+            figures[enemyColor][victim] = figures[enemyColor][victim] setBit to
+            figures[ALL][ALL_WHITES + enemyColor] = figures[ALL][ALL_WHITES + enemyColor] setBit to
         } else {
-            figures[ALL][DEFAULT] = figures[ALL][DEFAULT] zeroBit move.to
-            figures[ALL][ROTATED90] = figures[ALL][ROTATED90] zeroBit ROTATE_90[move.to]
-            figures[ALL][ROTATED45] = figures[ALL][ROTATED45] zeroBit ROTATE_45[move.to]
-            figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] zeroBit ROTATE_MINUS45[move.to]
+            figures[ALL][DEFAULT] = figures[ALL][DEFAULT] zeroBit to
+            figures[ALL][ROTATED90] = figures[ALL][ROTATED90] zeroBit ROTATE_90[to]
+            figures[ALL][ROTATED45] = figures[ALL][ROTATED45] zeroBit ROTATE_45[to]
+            figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] zeroBit ROTATE_MINUS45[to]
         }
     }
 
@@ -266,7 +278,7 @@ class BitBoard : AbstractPosition {
     }
 
     fun isMoveLegal(from: Int, to: Int, color: Int): Boolean {
-        val move = Move(from, to, 0, 0, 0)
+        val move = createMove(from, to, 0, 0, 0)
         for (m in getMoves(color, false)) {
             if (move == m)
                 return true
@@ -279,7 +291,7 @@ class BitBoard : AbstractPosition {
             var eaten = false
             makeMove(move, to)
             for (m in getMoves(1 - to, true))
-                if (m.victim == KING) {
+                if (m.getVictim() == KING) {
                     eaten = true
                     break
                 }
@@ -293,11 +305,9 @@ class BitBoard : AbstractPosition {
     fun equals(bitBoard: BitBoard) = Arrays.equals(figures[WHITE], bitBoard.figures[WHITE]) && Arrays.equals(figures[BLACK], bitBoard.figures[BLACK])
 
 
-
-    fun putHash(sortMoves: Array<Move>) {
-        count++
-           hashingMoves.put(hash, sortMoves)
-//        hashingPosition[hash] = BitBoard(this)
+    fun putHash(sortMoves: Array<Int>) {
+        // hashingMoves.put(hash, sortMoves)
+        // hashingPosition[hash] = BitBoard(this)
     }
 
 }

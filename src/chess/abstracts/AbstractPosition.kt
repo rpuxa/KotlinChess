@@ -1,18 +1,16 @@
 package chess.abstracts
 
-import chess.Move
-
 interface AbstractPosition {
 
-    fun getSortMoves(color: Int, onlyCaptures: Boolean): Array<Move>
+    fun getSortMoves(color: Int, onlyCaptures: Boolean): Array<Int>
 
-    fun getMoves(color: Int, onlyCaptures: Boolean): Array<Move>
+    fun getMoves(color: Int, onlyCaptures: Boolean): Array<Int>
 
-    fun makeMove(from: Int, to: Int)
+    fun makeMove(from: Byte, to: Byte)
 
-    fun makeMove(move: Move, color: Int)
+    fun makeMove(move: Int, color: Int)
 
-    fun unmakeMove(move: Move, color: Int)
+    fun unmakeMove(move: Int, color: Int)
 
     fun result(): Int
 }

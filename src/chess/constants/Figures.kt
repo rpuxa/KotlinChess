@@ -12,7 +12,7 @@ const val ROTATED_MINUS45 = 3
 const val ALL_WHITES = 4
 const val ALL_BLACKS = 5
 
-const val NONE = -1
+const val NONE = 6
 const val KING = 0
 const val ROOK = 1
 const val KNIGHT = 2

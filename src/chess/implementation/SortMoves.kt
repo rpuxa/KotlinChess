@@ -1,30 +1,31 @@
 package chess.implementation
 
-import chess.Move
 import chess.abstracts.AbstractSortingMoves
 import chess.constants.KING
 import chess.constants.NONE
 import chess.constants.PAWN
 import chess.implementation.Eval.Costs.FIGURES_COSTS
+import chess.utils.getType
+import chess.utils.getVictim
 import java.util.*
 
 class SortMoves : AbstractSortingMoves {
 
-    override fun sort(moves: Array<Move>): Array<Move> {
+    override fun sort(moves: Array<Int>): Array<Int> {
         //MW/LVA sort
+
         val mwlva = MWLVASort(moves)
         if (mwlva != null)
             return arrayOf(mwlva)
-
 
 
         return moves
     }
 
 
-    private fun MWLVASort(moves: Array<Move>): Move? {
-         Arrays.sort(moves, MWLVA_COMPARATOR)
-        if (moves[0].victim == KING)
+    private fun MWLVASort(moves: Array<Int>): Int? {
+        Arrays.sort(moves, MWLVA_COMPARATOR)
+        if (moves[0].getVictim() == KING)
             return moves[0]
         return null
     }
@@ -32,12 +33,12 @@ class SortMoves : AbstractSortingMoves {
     companion object {
         private val MWLVA_ARRAY_COSTS = Array(6, { IntArray(6) })
 
-        private val MWLVA_COMPARATOR = Comparator<Move>{move1: Move, move2: Move ->
-            if (move1.victim == NONE)
-                 return@Comparator if (move2.victim == NONE) 0 else 1
-            if (move2.victim == NONE)
+        private val MWLVA_COMPARATOR = Comparator<Int> { move1: Int, move2: Int ->
+            if (move1.getVictim() == NONE)
+                return@Comparator if (move2.getVictim() == NONE) 0 else 1
+            if (move2.getVictim() == NONE)
                 return@Comparator -1
-            MWLVA_ARRAY_COSTS[move2.victim][move2.type] - MWLVA_ARRAY_COSTS[move1.victim][move2.type]
+            MWLVA_ARRAY_COSTS[move2.getVictim()][move2.getType()] - MWLVA_ARRAY_COSTS[move1.getVictim()][move2.getType()]
         }
 
         init {
