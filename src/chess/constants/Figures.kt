@@ -20,6 +20,8 @@ const val BISHOP = 3
 const val QUEEN = 4
 const val PAWN = 5
 
+const val LONG_CASTLE = 0
+const val SHORT_CASTLE = 1
 
 const val COUNT = 12
 const val BOARD_SIZE = 8

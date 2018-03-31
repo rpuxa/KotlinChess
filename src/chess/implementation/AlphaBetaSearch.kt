@@ -1,5 +1,6 @@
 package chess.implementation
 
+import chess.RunJava.COMPUTER_PLAY_BY
 import chess.abstracts.AbstractEvaluate
 import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSearch
@@ -14,6 +15,8 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
     override fun search(position: AbstractPosition, colorMove: Int, maxDepth: Int): Int {
         if (position !is BitBoard)
             return 0
+        eval.evaluate(position)
+        var bestScore = 0
         val moves = position.getSortMoves(colorMove, false)
         var betsMove: Int? = null
             for (depth in 0..maxDepth) {
@@ -26,12 +29,14 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate) : AbstractSearch {
                     position.unmakeMove(move, colorMove)
                     if (score > alpha) {
                         alpha = score
+                        bestScore = alpha
                         betsMove = move
                     }
 
                 }
             }
         position.clearHash()
+        println("Оценка: ${(if (COMPUTER_PLAY_BY == WHITE) 1 else -1) * bestScore.toDouble() / 100}")
         return betsMove!!
     }
 

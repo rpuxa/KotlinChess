@@ -13,6 +13,18 @@ class BitBoard : AbstractPosition {
     var hash = 0L
     private val moves = Array(100, { 0 })
     private var size = 0
+    private val rookMoves = arrayOf(
+            arrayOf(
+                    arrayOf(A1, 0),
+                    arrayOf(H1, 0)
+            ),
+            arrayOf(
+                    arrayOf(A8, 0),
+                    arrayOf(H8, 0)
+            )
+    )
+    private val kingMoves = arrayOf(0, 0)
+    var lastMovingFigure = ArrayDeque<Int>()
     private val hashingMoves: HashMap<Long, Int> = HashMap()
     //  private lateinit var hashingPosition: HashMap<Long, BitBoard>
     lateinit var lastPositions: ArrayDeque<Long>
@@ -113,11 +125,8 @@ class BitBoard : AbstractPosition {
                     size++
                 }
             } else {
-                var m = createMove(from, cell, type, killed, 0)
-                moves[size] = m
+                moves[size] = createMove(from, cell, type, killed, 0)
                 size++
-
-
             }
 
         }
@@ -155,7 +164,29 @@ class BitBoard : AbstractPosition {
                                 addMove(cell, type, BLACK_PAWNS_MOVE[cell] and figures[ALL][DEFAULT].inv(), enemyColor, cell <= H2)
                             addMove(cell, type, BLACK_PAWNS_ATTACK[cell] and enemyFigures, enemyColor, cell <= H2)
                         }
-                    KING -> addMove(cell, type, if (onlyCaptures) KING_ATTACK[cell] and enemyFigures else KING_ATTACK[cell] and ourFiguresReverse, enemyColor)
+                    KING -> {
+                        addMove(cell, type, if (onlyCaptures) KING_ATTACK[cell] and enemyFigures else KING_ATTACK[cell] and ourFiguresReverse, enemyColor)
+                        if (!onlyCaptures) {
+                            if (figures[ALL][DEFAULT] and CASTLE[color][LONG_CASTLE] == 0L) {
+                                if (color == 0 && cell == E1 && figures[0][ROOK] checkBit A1) {
+                                    moves[size] = createMove(E1, C1, KING, NONE, 0)
+                                    size++
+                                } else if (color == 1 && cell == E8 && figures[1][ROOK] checkBit A8) {
+                                    moves[size] = createMove(E8, C8, KING, NONE, 0)
+                                    size++
+                                }
+                            }
+                            if (CASTLE[color][SHORT_CASTLE] and figures[ALL][DEFAULT] == 0L) {
+                                if (color == 0 && cell == E1 && figures[0][ROOK] checkBit H1) {
+                                    moves[size] = createMove(E1, G1, KING, NONE, 0)
+                                    size++
+                                } else if (color == 1 && cell == E8 && figures[1][ROOK] checkBit H8) {
+                                    moves[size] = createMove(E8, G8, KING, NONE, 0)
+                                    size++
+                                }
+                            }
+                        }
+                    }
                     KNIGHT -> addMove(cell, type, if (onlyCaptures) KNIGHT_ATTACK[cell] and enemyFigures else KNIGHT_ATTACK[cell] and ourFiguresReverse, enemyColor)
                     BISHOP -> {
                         val attack = BISHOP_ATTACKS45[cell][((figures[ALL][ROTATED45] ushr SHIFT45[cell]) and 255).toInt()] or BISHOP_ATTACKS_MINUS45[cell][((figures[ALL][ROTATED_MINUS45] ushr SHIFT_MINUS45[cell]) and 255).toInt()]
@@ -199,12 +230,33 @@ class BitBoard : AbstractPosition {
         val to = move.getTo()
         val promotion = move.getPromotion()
         val victim = move.getVictim()
+
         hash = hash xor zKeys[color][type][from] xor zKeys[color][type][to]
         if (victim != NONE)
             hash = hash xor zKeys[1 - color][victim][to]
         lastPositions.addFirst(hash)
+        lastMovingFigure.addFirst(to)
 
         val allColor = ALL_WHITES + color
+        //<editor-fold desc="Castling ">
+        if (type == KING && Math.abs(from - to) == 2) {
+            val castle = when (to) {
+                C1, C8 -> LONG_CASTLE
+                G1, G8 -> SHORT_CASTLE
+                else -> -1
+            }
+            figures[color][ROOK] = figures[color][ROOK] xor CASTLE_MASK[color][castle][ROOK]
+            figures[color][KING] = figures[color][KING] xor CASTLE_MASK[color][castle][KING]
+
+            figures[ALL][DEFAULT] = figures[ALL][DEFAULT] xor CASTLE_MASK[color][castle][ROOK] xor CASTLE_MASK[color][castle][KING]
+            figures[ALL][ROTATED90] = figures[ALL][ROTATED90] xor (CASTLE_MASK[color][castle][ROOK] xor CASTLE_MASK[color][castle][KING]).to90()
+            figures[ALL][ROTATED45] = figures[ALL][ROTATED45] xor (CASTLE_MASK[color][castle][ROOK] xor CASTLE_MASK[color][castle][KING]).to45()
+            figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] xor (CASTLE_MASK[color][castle][ROOK] xor CASTLE_MASK[color][castle][KING]).toMinus45()
+            figures[ALL][allColor] = figures[ALL][allColor] xor CASTLE_MASK[color][castle][ROOK] xor CASTLE_MASK[color][castle][KING]
+            return
+        }
+        //</editor-fold>
+
         figures[color][type] = figures[color][type] zeroBit from
         if (promotion == 0)
             figures[color][type] = figures[color][type] setBit to
@@ -240,8 +292,28 @@ class BitBoard : AbstractPosition {
         if (victim != NONE)
             hash = hash xor zKeys[1 - color][victim][to]
         lastPositions.pollFirst()
+        lastMovingFigure.pollFirst()
 
         val allColor = ALL_WHITES + color
+        //<editor-fold desc="Castling">
+        if (type == KING && Math.abs(from - to) == 2) {
+            val castle = when (to) {
+                C1, C8 -> LONG_CASTLE
+                G1, G8 -> SHORT_CASTLE
+                else -> -1
+            }
+            figures[color][ROOK] = figures[color][ROOK] xor CASTLE_MASK[color][castle][ROOK]
+            figures[color][KING] = figures[color][KING] xor CASTLE_MASK[color][castle][KING]
+
+            figures[ALL][DEFAULT] = figures[ALL][DEFAULT] xor CASTLE_MASK[color][castle][ROOK] xor CASTLE_MASK[color][castle][KING]
+            figures[ALL][ROTATED90] = figures[ALL][ROTATED90] xor CASTLE_MASK[color][castle][ROOK].to90() xor CASTLE_MASK[color][castle][KING].to90()
+            figures[ALL][ROTATED45] = figures[ALL][ROTATED45] xor CASTLE_MASK[color][castle][ROOK].to45() xor CASTLE_MASK[color][castle][KING].to45()
+            figures[ALL][ROTATED_MINUS45] = figures[ALL][ROTATED_MINUS45] xor CASTLE_MASK[color][castle][ROOK].toMinus45() xor CASTLE_MASK[color][castle][KING].toMinus45()
+            figures[ALL][allColor] = figures[ALL][allColor] xor CASTLE_MASK[color][castle][ROOK] xor CASTLE_MASK[color][castle][KING]
+            return
+        }
+        //</editor-fold>
+
         figures[color][type] = figures[color][type] setBit from
         if (promotion == 0)
             figures[color][type] = figures[color][type] zeroBit to
@@ -308,10 +380,6 @@ class BitBoard : AbstractPosition {
     }
 
     fun isCheckTo(color: Int) = getMoves(1 - color, true).any { it.getVictim() == KING }
-
-
-    fun equals(bitBoard: BitBoard) = Arrays.equals(figures[WHITE], bitBoard.figures[WHITE]) && Arrays.equals(figures[BLACK], bitBoard.figures[BLACK])
-
 
     fun putHash(move: Int) {
         hashingMoves.put(hash, move)

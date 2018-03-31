@@ -5,6 +5,7 @@ import chess.constants.KING
 import chess.constants.NONE
 import chess.constants.PAWN
 import chess.implementation.Eval.Costs.FIGURES_COSTS
+import chess.utils.getTo
 import chess.utils.getType
 import chess.utils.getVictim
 import java.util.*
@@ -17,6 +18,14 @@ class SortMoves : AbstractSortingMoves {
         if (mwlva != null)
             return arrayOf(mwlva)
         val hashing = position.getHashingMove()
+        //Взятие последней ходившей фигуры
+        for (i in 0 until moves.size) {
+            if (moves[i].getTo() == position.lastMovingFigure.first) {
+                swap(moves, i)
+                break
+            }
+        }
+        //Хэш
         if (hashing != null) {
             swap(moves, moves.indexOf(hashing))
         }
@@ -24,13 +33,6 @@ class SortMoves : AbstractSortingMoves {
         return moves
     }
 
-    private fun swap(a: Array<Int>, from: Int) {
-        if (from != -1) {
-            val tmp = a[0]
-            a[0] = a[from]
-            a[from] = tmp
-        }
-    }
 
     private fun MWLVASort(moves: Array<Int>): Int? {
         Arrays.sort(moves, MWLVA_COMPARATOR)
@@ -55,6 +57,14 @@ class SortMoves : AbstractSortingMoves {
                 for (attacker in KING..PAWN) {
                     MWLVA_ARRAY_COSTS[victim][attacker] = 10_000_00 * FIGURES_COSTS[victim] - FIGURES_COSTS[attacker]
                 }
+        }
+
+        fun swap(a: Array<Int>, from: Int) {
+            if (from != -1) {
+                val tmp = a[0]
+                a[0] = a[from]
+                a[from] = tmp
+            }
         }
     }
 }

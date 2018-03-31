@@ -82,6 +82,19 @@ val BLACK_PAWNS_ATTACK = LongArray(64)
 val KNIGHT_ATTACK = LongArray(64)
 val KING_ATTACK = LongArray(64)
 
+val CASTLE_MASK = arrayOf(
+        arrayOf(
+                arrayOf(0b10100L, 0b1001),
+                arrayOf(0b1010000L, 0b10100000)
+        ),
+        Array(2, { Array(2, { 0L }) })
+)
+
+val CASTLE = arrayOf(
+        arrayOf(0b1110L, 0b1100000),
+        Array(2, { 0L })
+)
+
 fun movesGen() {
     calculateShifts()
     moveGenBishop()
@@ -89,6 +102,11 @@ fun movesGen() {
     moveGenKnight()
     moveGenPawns()
     moveGenRook()
+    CASTLE[1][0] = CASTLE[0][0] shl 56
+    CASTLE[1][1] = CASTLE[0][1] shl 56
+    for (i in 0..1)
+        for (j in 0..1)
+            CASTLE_MASK[1][i][j] = CASTLE_MASK[0][i][j] shl 56
 }
 
 fun moveGenBishop() {
@@ -242,24 +260,24 @@ fun moveGenKnight() {
 }
 
 fun moveGenKing() {
-        val directions = arrayOf(
-                arrayOf(-1, 0),
-                arrayOf(-1, 1),
-                arrayOf(0, 1),
-                arrayOf(1, 1),
-                arrayOf(1, 0),
-                arrayOf(1, -1),
-                arrayOf(0, -1),
-                arrayOf(-1, -1)
-        )
-        for (x in 0..7)
-            for (y in 0..7) {
-                val cell = cordToBit(x, y)
-                for (d in directions)
-                    if (isInBoard(x + d[0], y + d[1])) {
-                        KING_ATTACK[cell] = KING_ATTACK[cell] setBit cordToBit(x + d[0], y + d[1])
-                    }
-            }
+    val directions = arrayOf(
+            arrayOf(-1, 0),
+            arrayOf(-1, 1),
+            arrayOf(0, 1),
+            arrayOf(1, 1),
+            arrayOf(1, 0),
+            arrayOf(1, -1),
+            arrayOf(0, -1),
+            arrayOf(-1, -1)
+    )
+    for (x in 0..7)
+        for (y in 0..7) {
+            val cell = cordToBit(x, y)
+            for (d in directions)
+                if (isInBoard(x + d[0], y + d[1])) {
+                    KING_ATTACK[cell] = KING_ATTACK[cell] setBit cordToBit(x + d[0], y + d[1])
+                }
+        }
 }
 
 fun Long.to45(): Long {
