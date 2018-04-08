@@ -6,6 +6,7 @@ import chess.abstracts.AbstractPosition
 import chess.abstracts.AbstractSortingMoves
 import chess.utils.*
 import java.util.*
+import kotlin.collections.HashMap
 
 class BitBoard : AbstractPosition {
     val figures: Array<LongArray>
@@ -13,24 +14,15 @@ class BitBoard : AbstractPosition {
     var hash = 0L
     private val moves = Array(100, { 0 })
     private var size = 0
-    private val rookMoves = arrayOf(
-            arrayOf(
-                    arrayOf(A1, 0),
-                    arrayOf(H1, 0)
-            ),
-            arrayOf(
-                    arrayOf(A8, 0),
-                    arrayOf(H8, 0)
-            )
-    )
-    private val kingMoves = arrayOf(0, 0)
+    private val hashingScore: HashMap<Long, Long>
     var lastMovingFigure = ArrayDeque<Int>()
     private val hashingMoves: HashMap<Long, Int> = HashMap()
-    //  private lateinit var hashingPosition: HashMap<Long, BitBoard>
-    lateinit var lastPositions: ArrayDeque<Long>
-    private lateinit var zKeys: Array<Array<LongArray>>
+    var lastPositions: ArrayDeque<Long>
+    private var zKeys: Array<Array<LongArray>>
+    private var nullMoveZKey = 0L
 
     constructor(figures: Array<LongArray>, sort: AbstractSortingMoves) {
+        hashingScore = HashMap()
         this.figures = figures
         this.sort = sort
         zKeys = Array(2, { Array(6, { LongArray(64) }) })
@@ -41,12 +33,17 @@ class BitBoard : AbstractPosition {
             for (type in KING..PAWN)
                 for (cell in 0..63)
                     zKeys[color][type][cell] = random.nextLong()
-
+        nullMoveZKey = random.nextLong()
     }
 
     constructor(bitBoard: BitBoard) {
         figures = arrayOf(bitBoard.figures[0].clone(), bitBoard.figures[1].clone(), bitBoard.figures[2].clone())
         hash = bitBoard.hash
+        zKeys = bitBoard.zKeys
+        lastPositions = ArrayDeque(bitBoard.lastPositions)
+        nullMoveZKey = bitBoard.nullMoveZKey
+        hashingScore = HashMap(bitBoard.hashingScore)
+        lastMovingFigure = ArrayDeque(lastMovingFigure)
     }
 
 
@@ -87,7 +84,7 @@ class BitBoard : AbstractPosition {
             return bitBoard
         }
 
-        private fun empty(sort: AbstractSortingMoves): BitBoard = BitBoard(arrayOf(
+        fun empty(sort: AbstractSortingMoves): BitBoard = BitBoard(arrayOf(
                 LongArray(6),
                 LongArray(6),
                 LongArray(6)
@@ -381,12 +378,34 @@ class BitBoard : AbstractPosition {
 
     fun isCheckTo(color: Int) = getMoves(1 - color, true).any { it.getVictim() == KING }
 
-    fun putHash(move: Int) {
+    fun hashMove(move: Int) {
         hashingMoves.put(hash, move)
+    }
+
+    fun hashScore(score: Int, depth: Int, color: Int) {
+        val result = hashingScore[hash]
+        if (result == null || result and 0xFF > depth)
+            hashingScore[hash] = (((score.toLong() shl 31) or depth.toLong()) shl 1) or color.toLong()
+    }
+
+    fun getHashingScore(depth: Int, color: Int): Int? {
+        val result = hashingScore[hash] ?: return null
+        if (result and 1 != color.toLong())
+            return null
+        val d = ((result ushr 1) and 0xFF).toInt()
+        if (d != depth)
+            return null
+        return (result ushr 32).toInt()
+    }
+
+    fun setNullMoveZKey() {
+        hash = hash xor nullMoveZKey
     }
 
     fun getHashingMove() = hashingMoves[hash]
 
-    fun clearHash() = hashingMoves.clear()
+    fun clearHashMoves() = hashingMoves.clear()
+
+    fun clearHashScore() = hashingScore.clear()
 }
 

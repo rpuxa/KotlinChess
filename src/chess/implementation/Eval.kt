@@ -21,10 +21,11 @@ class Eval : AbstractEvaluate {
             val enemyColor = 1 - color
             val sign = if (color == WHITE) 1 else -1
             //<editor-fold desc="Cost">
-            for (type in ROOK..PAWN) {
+            for (type in KING..PAWN) {
 
                 val m = position.figures[color][type].bitCount() * FIGURES_COSTS[type]
                 score += sign * 32 * m
+                if (type != KING)
                 material += m
             }
             //</editor-fold>

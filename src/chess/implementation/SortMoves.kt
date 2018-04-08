@@ -19,12 +19,13 @@ class SortMoves : AbstractSortingMoves {
             return arrayOf(mwlva)
         val hashing = position.getHashingMove()
         //Взятие последней ходившей фигуры
-        for (i in 0 until moves.size) {
-            if (moves[i].getTo() == position.lastMovingFigure.first) {
-                swap(moves, i)
-                break
+        if (!position.lastMovingFigure.isEmpty())
+            for (i in 0 until moves.size) {
+                if (moves[i].getTo() == position.lastMovingFigure.first) {
+                    swap(moves, i)
+                    break
+                }
             }
-        }
         //Хэш
         if (hashing != null) {
             swap(moves, moves.indexOf(hashing))

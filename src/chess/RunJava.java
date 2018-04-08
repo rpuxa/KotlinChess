@@ -7,16 +7,19 @@ import chess.implementation.Eval;
 import chess.implementation.SortMoves;
 import chess.visual.MyFrame;
 
-import static chess.constants.FiguresKt.BLACK;
 import static chess.constants.FiguresKt.CONTINUE;
 import static chess.constants.FiguresKt.WHITE;
 
 public class RunJava {
 
-    public static long ALL_TIME = 0;
+    public static long POSITIONS = 0;
 
-    private static final boolean PLAY_WITH_COMPUTER = true;
-    public static final int COMPUTER_PLAY_BY = BLACK;
+    public static final String startPosition = "r1bqkb1r/ppp1nppp/2n5/2Np4/4p3/5N2/PPPPPPPP/R1BQKB1R b KQkq - 1 3";
+
+    public static final boolean PLAY_WITH_COMPUTER = false;
+    public static final int COMPUTER_PLAY_BY = WHITE;
+    public static final int TURN = WHITE;
+    public static final int THREADS = 10;
 
     public static void main(String[] args) throws InterruptedException {
         if (PLAY_WITH_COMPUTER)
@@ -26,7 +29,7 @@ public class RunJava {
     }
 
     private static void playWithComputer() throws InterruptedException {
-        Engine engine = new Engine(BitBoard.Positions.start(new SortMoves()), new AlphaBetaSearch(new Eval()), 0);
+        Engine engine = new Engine(Engine.Companion.fromFENtoBitBoard(startPosition), new AlphaBetaSearch(new Eval(), THREADS), WHITE);
 
         MyFrame frame = new MyFrame(null);
         frame.setListener((from, to) -> {
@@ -49,14 +52,14 @@ public class RunJava {
     }
 
     private static void compVsComp() throws InterruptedException {
-        Engine engine = new Engine(BitBoard.Positions.start(new SortMoves()), new AlphaBetaSearch(new Eval()), 0);
+        Engine engine = new Engine(BitBoard.Positions.start(new SortMoves()), new AlphaBetaSearch(new Eval(), THREADS), TURN);
 
         MyFrame frame = new MyFrame(null);
 
         while (true) {
             long time = System.currentTimeMillis();
             int move = engine.getAIMove();
-            System.out.println(System.currentTimeMillis() - time + "    " + ALL_TIME);
+            System.out.println(System.currentTimeMillis() - time + "    " + POSITIONS + "    " + (POSITIONS / (System.currentTimeMillis() - time)));
             engine.makeMove(move);
             frame.setPosition((BitBoard) engine.getPosition());
             while (System.currentTimeMillis() - time < 0)
