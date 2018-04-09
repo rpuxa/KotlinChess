@@ -52,7 +52,8 @@ public class RunJava {
     }
 
     private static void compVsComp() throws InterruptedException {
-        Engine engine = new Engine(BitBoard.Positions.start(new SortMoves()), new AlphaBetaSearch(new Eval(), THREADS), TURN);
+        AlphaBetaSearch search = new AlphaBetaSearch(new Eval(), THREADS);
+        Engine engine = new Engine(BitBoard.Positions.start(new SortMoves(), search), search, TURN);
 
         MyFrame frame = new MyFrame(null);
 

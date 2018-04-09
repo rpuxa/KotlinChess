@@ -1,12 +1,11 @@
 package chess.abstracts
 
-import chess.ROTATE_45
-import chess.ROTATE_90
-import chess.ROTATE_MINUS45
+import chess.*
 import chess.constants.*
+import chess.implementation.AlphaBetaSearch
 import chess.implementation.BitBoard
+import chess.implementation.Eval
 import chess.implementation.SortMoves
-import chess.movesGen
 import chess.utils.setBit
 
 class Engine(val position: AbstractPosition,
@@ -30,7 +29,7 @@ class Engine(val position: AbstractPosition,
 
     companion object {
         fun fromFENtoBitBoard(fen: String): BitBoard {
-            val bitBoard = BitBoard.empty(SortMoves())
+            val bitBoard = BitBoard.empty(SortMoves(), AlphaBetaSearch(Eval(), RunJava.THREADS))
             var cellRotated = 0
             for (c in fen.toCharArray()) {
                 if (c == ' ')

@@ -10,19 +10,17 @@ import kotlin.collections.HashMap
 
 class BitBoard : AbstractPosition {
     val figures: Array<LongArray>
-    private lateinit var sort: AbstractSortingMoves
+    private var sort: AbstractSortingMoves
     var hash = 0L
     private val moves = Array(100, { 0 })
     private var size = 0
-    private val hashingScore: HashMap<Long, Long>
     var lastMovingFigure = ArrayDeque<Int>()
-    private val hashingMoves: HashMap<Long, Int> = HashMap()
-    var lastPositions: ArrayDeque<Long>
+    private var lastPositions: ArrayDeque<Long>
     private var zKeys: Array<Array<LongArray>>
     private var nullMoveZKey = 0L
+    private val search: AlphaBetaSearch
 
-    constructor(figures: Array<LongArray>, sort: AbstractSortingMoves) {
-        hashingScore = HashMap()
+    constructor(figures: Array<LongArray>, sort: AbstractSortingMoves, search: AlphaBetaSearch) {
         this.figures = figures
         this.sort = sort
         zKeys = Array(2, { Array(6, { LongArray(64) }) })
@@ -34,6 +32,7 @@ class BitBoard : AbstractPosition {
                 for (cell in 0..63)
                     zKeys[color][type][cell] = random.nextLong()
         nullMoveZKey = random.nextLong()
+        this.search = search
     }
 
     constructor(bitBoard: BitBoard) {
@@ -42,14 +41,16 @@ class BitBoard : AbstractPosition {
         zKeys = bitBoard.zKeys
         lastPositions = ArrayDeque(bitBoard.lastPositions)
         nullMoveZKey = bitBoard.nullMoveZKey
-        hashingScore = HashMap(bitBoard.hashingScore)
-        lastMovingFigure = ArrayDeque(lastMovingFigure)
+        lastMovingFigure = ArrayDeque(bitBoard.lastMovingFigure)
+        lastPositions = ArrayDeque(bitBoard.lastPositions)
+        sort = bitBoard.sort
+        search = bitBoard.search
     }
 
 
     companion object Positions {
-        fun start(sort: AbstractSortingMoves): BitBoard {
-            val bitBoard = empty(sort)
+        fun start(sort: AbstractSortingMoves, search: AlphaBetaSearch): BitBoard {
+            val bitBoard = empty(sort, search)
             for (i in HORIZONTAL_2)
                 bitBoard.figures[WHITE][PAWN] = bitBoard.figures[WHITE][PAWN] setBit i
             for (i in HORIZONTAL_7)
@@ -84,11 +85,11 @@ class BitBoard : AbstractPosition {
             return bitBoard
         }
 
-        fun empty(sort: AbstractSortingMoves): BitBoard = BitBoard(arrayOf(
+        fun empty(sort: AbstractSortingMoves, search: AlphaBetaSearch): BitBoard = BitBoard(arrayOf(
                 LongArray(6),
                 LongArray(6),
                 LongArray(6)
-        ), sort)
+        ), sort, search)
     }
 
     fun calculateHash() {
@@ -378,34 +379,12 @@ class BitBoard : AbstractPosition {
 
     fun isCheckTo(color: Int) = getMoves(1 - color, true).any { it.getVictim() == KING }
 
-    fun hashMove(move: Int) {
-        hashingMoves.put(hash, move)
-    }
-
-    fun hashScore(score: Int, depth: Int, color: Int) {
-        val result = hashingScore[hash]
-        if (result == null || result and 0xFF > depth)
-            hashingScore[hash] = (((score.toLong() shl 31) or depth.toLong()) shl 1) or color.toLong()
-    }
-
-    fun getHashingScore(depth: Int, color: Int): Int? {
-        val result = hashingScore[hash] ?: return null
-        if (result and 1 != color.toLong())
-            return null
-        val d = ((result ushr 1) and 0xFF).toInt()
-        if (d != depth)
-            return null
-        return (result ushr 32).toInt()
-    }
-
     fun setNullMoveZKey() {
         hash = hash xor nullMoveZKey
     }
 
-    fun getHashingMove() = hashingMoves[hash]
+    fun getHashingMove() = search.hashingMoves[hash]
 
-    fun clearHashMoves() = hashingMoves.clear()
 
-    fun clearHashScore() = hashingScore.clear()
 }
 
