@@ -19,7 +19,7 @@ public class RunJava {
     public static final boolean PLAY_WITH_COMPUTER = false;
     public static final int COMPUTER_PLAY_BY = WHITE;
     public static final int TURN = WHITE;
-    public static final int THREADS = 10;
+    public static final int THREADS = 1;
 
     public static void main(String[] args) throws InterruptedException {
         if (PLAY_WITH_COMPUTER)

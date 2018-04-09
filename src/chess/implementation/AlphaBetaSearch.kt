@@ -21,9 +21,8 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
         RunJava.POSITIONS = 0
         if (position !is BitBoard)
             return 0
-        eval.evaluate(position)
         val moves = position.getSortMoves(colorMove, false)
-        val semaphore = Semaphore(1)
+       // val semaphore = Semaphore(1)
         var bestScore = 0
         var bestMove: Int? = null
         val results = IntArray(moves.size)
@@ -31,6 +30,11 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
             var alpha = -100000
             val beta = 100000
             var threadsAlive = 0
+                    // тоже самое что
+            //                        for (move : moves) {
+            //                             moveNumber++
+            //                             ...
+            //                        }
             for ((moveNumber, move) in moves.withIndex()) {
                 Thread(Runnable {
                     val mn = moveNumber
@@ -38,6 +42,7 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
                     position1.makeMove(move, colorMove)
                     val score = -alphaBeta(position1, -beta, -alpha, 1 - colorMove, 0, depth, false, true, false)
                     position1.unmakeMove(move, colorMove)
+                    //записываем результат потока
                     results[mn] = score
                     /* semaphore.acquire()
                     if (score > alpha) {
@@ -49,12 +54,15 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
                     threadsAlive--
                 }).start()
                 threadsAlive++
+                //countThreads - максимальное количество потоков, которые могут работать одновременно
+                // threadsAlive - количество живых потоков
                 while (threadsAlive >= countThreads)
                     Thread.sleep(10)
             }
           //  hashMove(bestMove!!, position.hash)
-            hashingScore.clear()
+           // hashingScore.clear()
         }
+                //Находим ход с максимальной оценкой
         var max = Integer.MIN_VALUE
         for (i in 0 until results.size) {
             if (results[i] > max) {
@@ -63,11 +71,15 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
                 bestMove = moves[i]
             }
         }
-        hashingMoves.clear()
+       // hashingMoves.clear()
+        //<editor-fold desc="Вывод оценки">
         if (PLAY_WITH_COMPUTER)
             println("Оценка: ${(if (COMPUTER_PLAY_BY == WHITE) 1 else -1) * bestScore.toDouble() / 100}")
         else
             println("Оценка: ${(if (colorMove == WHITE) 1 else -1) * bestScore.toDouble() / 100}")
+        //</editor-fold>
+
+                    //Возвращаем лучший ход. !! - означается что объект != null
         return bestMove!!
     }
 
@@ -84,7 +96,7 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
              return res*/
         var alpha = alpha0
         if (depth >= maxDepth)
-            return quies(position, colorMove, alpha0, beta) //(if (colorMove == WHITE) 1 else -1) * eval.evaluate(position)
+            return (if (colorMove == WHITE) 1 else -1) * eval.evaluate(position) //quies(position, colorMove, alpha0, beta)
         /*if (!isNullMove && noTaking && !position.isCheckTo(colorMove)) { //Puring
             val evaluate = (if (colorMove == WHITE) -1 else 1) * eval.evaluate(position)
             if (maxDepth - depth <= 2 && evaluate - 50 >= beta) //Futility Puring
@@ -131,7 +143,7 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
             hashScore(max, depth, colorMove, position.hash)*/
         return max
     }
-
+/*
     private fun quies(position: BitBoard, colorMove: Int, alpha0: Int, beta: Int): Int {
         var alpha = alpha0
         val score = (if (colorMove == WHITE) 1 else -1) * eval.evaluate(position)
@@ -171,5 +183,5 @@ class AlphaBetaSearch(evaluate: AbstractEvaluate, countThreads: Int) : AbstractS
         return (result ushr 32).toInt()
     }
 
-    fun getHashingMove(hash: Long) = hashingMoves[hash]
+    fun getHashingMove(hash: Long) = hashingMoves[hash]*/
 }
